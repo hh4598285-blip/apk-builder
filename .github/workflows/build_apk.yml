@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on:
+  repository_dispatch:
+    types: [build_apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies & Buildozer
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libcilkrts5 libffi-dev libssl-dev
+          pip install --upgrade buildozer cython kivy
+
+      - name: Create Main Python File
+        run: |
+          echo "${{ github.event.client_payload.code }}" > main.py
+
+      - name: Initialize & Build APK
+        run: |
+          buildozer init
+          sed -i 's/title = My Application/title = ${{ github.event.client_payload.app_name }}/g' buildozer.spec
+          buildozer -v android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.event.client_payload.app_name }}-APK
+          path: bin/*.apk
