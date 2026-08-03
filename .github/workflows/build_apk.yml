@@ -37,7 +37,8 @@ jobs:
             zlib1g-dev \
             libgstreamer1.0-dev \
             gstreamer1.0-plugins-base \
-            gstreamer1.0-plugins-good
+            gstreamer1.0-plugins-good \
+            openjdk-17-jdk
 
     - name: Install Buildozer and Cython
       run: |
@@ -50,30 +51,23 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Configure Licenses
+    - name: Init Buildozer Spec & Configure APIs
       run: |
         cd my_app
         buildozer init -y
         
-        # הגדרות תאימות ודרישות
+        # הגדרת דרישות בסיס וגרסאות API יציבות
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
-        # הוספת אישור רישיונות אוטומטי מורחב למניעת עצירת הקימפול
+        # אישור רישיונות אוטומטי מובנה
         echo "android.accept_sdk_license = True" >> buildozer.spec
-        echo "android.sdk_path = /home/runner/buildozer/android/android-sdk" >> buildozer.spec
 
-    - name: Pre-accept Android Licenses (sdkmanager)
-      run: |
-        mkdir -p /home/runner/buildozer/android/android-sdk/licenses
-        sdkmanager --version || true
-        yes | /home/runner/buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
-
-    - name: Build with Buildozer
+    - name: Build with Buildozer (Auto accept licenses via yes)
       run: |
         cd my_app
-        buildozer -v android debug
+        yes | buildozer -v android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
