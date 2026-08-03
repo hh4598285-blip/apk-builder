@@ -6,38 +6,77 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: kivy/buildozer:latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+            python3-pip \
+            build-essential \
+            git \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libgstreamer1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            openjdk-17-jdk \
+            zip \
+            unzip \
+            autoconf \
+            libtool \
+            pkg-config
+
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install --upgrade cython==0.29.36
+        pip install --upgrade --force-reinstall git+https://github.com/kivy/buildozer.git@master
 
     - name: Prepare App Code
       run: |
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Set Config
+    - name: Initialize Buildozer and Configure Spec
       run: |
         cd my_app
         buildozer init -y
         
-        # הגדרות תאימות, API וגרסת NDK 25b יציבה
+        # עדכון הגדרות קובץ ה-spec כך שיתאימו לגרסה היציבה
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
+        # כפיית NDK 25b יציב ואישור רישיונות אוטומטי
         echo "android.accept_sdk_license = True" >> buildozer.spec
         echo "android.ndk = 25b" >> buildozer.spec
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
+        echo "android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk" >> buildozer.spec
+        echo "android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r25b" >> buildozer.spec
 
     - name: Build with Buildozer
       run: |
         cd my_app
-        export HOME=/root
         yes | buildozer -v android debug
 
     - name: Upload APK Artifact
