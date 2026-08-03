@@ -51,20 +51,23 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Configure APIs
+    - name: Init Buildozer Spec & Fix NDK r25b
       run: |
         cd my_app
         buildozer init -y
         
-        # הגדרת דרישות בסיס וגרסאות API יציבות
+        # הגדרות תאימות, API וגרסת NDK 25b יציבה
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
-        # אישור רישיונות אוטומטי מובנה
+        # הוספת הגדרות NDK ואישור רישיונות אוטומטי
         echo "android.accept_sdk_license = True" >> buildozer.spec
+        echo "android.ndk = 25b" >> buildozer.spec
+        echo "android.api = 33" >> buildozer.spec
+        echo "android.minapi = 24" >> buildozer.spec
 
-    - name: Build with Buildozer (Auto accept licenses via yes)
+    - name: Build with Buildozer
       run: |
         cd my_app
         yes | buildozer -v android debug
