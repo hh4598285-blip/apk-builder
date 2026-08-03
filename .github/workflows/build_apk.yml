@@ -56,22 +56,11 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Force Download NDK r25b Manually
-      run: |
-        mkdir -p /home/runner/.buildozer/android/platform
-        cd /home/runner/.buildozer/android/platform
-        if [ ! -d "android-ndk-r25b" ]; then
-          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          unzip -q android-ndk-r25b-linux.zip
-          rm android-ndk-r25b-linux.zip
-        fi
-
     - name: Initialize Buildozer and Configure Spec
       run: |
         cd my_app
         buildozer init -y
         
-        # עדכון הגדרות קובץ ה-spec כך שיפנו ישירות ל-NDK שהורדנו
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
@@ -80,11 +69,16 @@ jobs:
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
         echo "android.ndk = 25b" >> buildozer.spec
-        echo "android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r25b" >> buildozer.spec
 
-    - name: Build with Buildozer
+    - name: Build with Buildozer (Clear Conflicting NDK Envs)
       run: |
         cd my_app
+        # מחיקת משתני הסביבה של השרת שגורמים להתנגשות
+        unset ANDROID_NDK
+        unset ANDROID_NDK_HOME
+        unset ANDROIDNDK
+        unset ANDROID_NDK_LATEST_HOME
+        
         yes | buildozer -v android debug
 
     - name: Upload APK Artifact
