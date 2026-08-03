@@ -7,18 +7,70 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: kivy/buildozer:latest
-      options: --user root
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+            python3-pip \
+            build-essential \
+            git \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libgstreamer1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            openjdk-17-jdk \
+            zip \
+            unzip \
+            autoconf \
+            libtool \
+            pkg-config
+
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install cython==0.29.36
+        pip install buildozer
+
     - name: Prepare App Code
       run: |
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
+
+    - name: Force NDK r25b and Bypass r28c Conflict
+      run: |
+        mkdir -p /home/runner/.buildozer/android/platform
+        cd /home/runner/.buildozer/android/platform
+        
+        # מחיקת כל זכר לגרסה הבעייתית אם קיימת
+        rm -rf android-ndk-r28c android-ndk-r25b android-ndk-r25b-linux.zip
+        
+        # הורדה ישירה של גרסה 25b היציבה
+        wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+        unzip -q android-ndk-r25b-linux.zip
+        rm android-ndk-r25b-linux.zip
+        
+        # טריק עקיפה: יצירת קישור סימבולי כך שכל פנייה ל-r28c תפנה בפועל ל-r25b
+        ln -s android-ndk-r25b android-ndk-r28c
 
     - name: Initialize Buildozer and Configure Spec
       run: |
@@ -34,11 +86,10 @@ jobs:
         echo "android.minapi = 24" >> buildozer.spec
         echo "android.ndk = 25b" >> buildozer.spec
 
-    - name: Build with Buildozer Inside Container
+    - name: Build with Buildozer
       run: |
         cd my_app
-        export HOME=/root
-        buildozer -v android debug
+        yes | buildozer -v android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
