@@ -17,6 +17,10 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Clean Old Buildozer Cache
+      run: |
+        rm -rf ~/.buildozer
+
     - name: Install Dependencies
       run: |
         sudo apt-get update
@@ -51,18 +55,18 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Configure API
+    - name: Init Buildozer Spec & Set Stable NDK
       run: |
         cd my_app
         buildozer init -y
         
-        # הגדרות תאימות ו-API
+        # הגדרות תאימות, API וגרסת NDK 25b יציבה שתמנע את התקלה
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
-        # אישור רישיונות אוטומטי
         echo "android.accept_sdk_license = True" >> buildozer.spec
+        echo "android.ndk = 25b" >> buildozer.spec
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
 
