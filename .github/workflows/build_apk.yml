@@ -27,7 +27,6 @@ jobs:
         
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         
-        # כתיבת הגדרות רישיון וגרסאות בצורה ישירה לקובץ
         echo "android.accept_sdk_license = True" >> buildozer.spec
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
@@ -36,8 +35,9 @@ jobs:
       run: |
         cd my_app
         export HOME=/root
-        # הרצה רגילה ללא צנרת ה-yes שגורמת ל-Broken pipe
-        buildozer -v android debug
+        # עקיפת בדיקת המשתמש כדי שלא ימתין לקלט מהמשתמש
+        export Buildozer_allow_root=1
+        yes y | buildozer -v android debug || buildozer -v android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
