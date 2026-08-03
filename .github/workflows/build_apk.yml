@@ -10,6 +10,10 @@ jobs:
     container:
       image: kivy/buildozer:latest
       options: --user root
+    # הגדרת משתנה סביבה גלובלי לכל השלבים שמונע מבילדוזר לעצור בגלל משתמש ה-root
+    env:
+      BUILDOZER_ALLOW_ROOT: '1'
+      BUILDOZER_ALLOW_ROOT_DEV: '1'
 
     steps:
     - name: Checkout Repository
@@ -35,9 +39,7 @@ jobs:
       run: |
         cd my_app
         export HOME=/root
-        # עקיפת בדיקת המשתמש כדי שלא ימתין לקלט מהמשתמש
-        export Buildozer_allow_root=1
-        yes y | buildozer -v android debug || buildozer -v android debug
+        buildozer -v android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
