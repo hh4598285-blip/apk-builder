@@ -56,39 +56,37 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Force NDK r25b and Bypass r28c Conflict
+    - name: Download NDK r25b Cleanly
       run: |
-        mkdir -p /home/runner/.buildozer/android/platform
-        cd /home/runner/.buildozer/android/platform
-        
-        # מחיקת כל זכר לגרסה הבעייתית אם קיימת
-        rm -rf android-ndk-r28c android-ndk-r25b android-ndk-r25b-linux.zip
-        
-        # הורדה ישירה של גרסה 25b היציבה
+        mkdir -p /home/runner/ndk_custom
+        cd /home/runner/ndk_custom
         wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip -q android-ndk-r25b-linux.zip
         rm android-ndk-r25b-linux.zip
-        
-        # טריק עקיפה: יצירת קישור סימבולי כך שכל פנייה ל-r28c תפנה בפועל ל-r25b
-        ln -s android-ndk-r25b android-ndk-r28c
 
-    - name: Initialize Buildozer and Configure Spec
+    - name: Initialize Buildozer and Force NDK Path in Spec
       run: |
         cd my_app
         buildozer init -y
         
+        # ניקוי הגדרות קודמות אם קיימות ב-spec
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
-        sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
-        sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
+        # הזרקת נתיבים מדויקים שמונעים כל שימוש ב-r28c של השרת
         echo "android.accept_sdk_license = True" >> buildozer.spec
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
         echo "android.ndk = 25b" >> buildozer.spec
+        echo "android.ndk_path = /home/runner/ndk_custom/android-ndk-r25b" >> buildozer.spec
 
     - name: Build with Buildozer
       run: |
         cd my_app
+        # איפוס משתני סביבה שעלולים לבלבל את הכלים
+        unset ANDROID_NDK
+        unset ANDROID_NDK_HOME
+        unset ANDROIDNDK
+        
         yes | buildozer -v android debug
 
     - name: Upload APK Artifact
