@@ -50,18 +50,25 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Fix Accept Licenses
+    - name: Init Buildozer Spec & Configure Licenses
       run: |
         cd my_app
         buildozer init -y
         
-        # תיקון ההגדרות בקובץ ה-spec כדי לאשר רישיונות אוטומטית ולהגדיר API תקין
+        # הגדרות תאימות ודרישות
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
-        # הוספת אישור רישיונות אוטומטי למניעת עצירת הקימפול
+        # הוספת אישור רישיונות אוטומטי מורחב למניעת עצירת הקימפול
         echo "android.accept_sdk_license = True" >> buildozer.spec
+        echo "android.sdk_path = /home/runner/buildozer/android/android-sdk" >> buildozer.spec
+
+    - name: Pre-accept Android Licenses (sdkmanager)
+      run: |
+        mkdir -p /home/runner/buildozer/android/android-sdk/licenses
+        sdkmanager --version || true
+        yes | /home/runner/buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
 
     - name: Build with Buildozer
       run: |
