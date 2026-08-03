@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout Repository
@@ -51,29 +51,20 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec & Force NDK 25b
+    - name: Init Buildozer Spec & Configure API
       run: |
         cd my_app
         buildozer init -y
         
-        # הגדרות תאימות, API וגרסת NDK 25b
+        # הגדרות תאימות ו-API
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
         
-        # כפיית שימוש ב-NDK 25b ואישור רישיונות אוטומטי
+        # אישור רישיונות אוטומטי
         echo "android.accept_sdk_license = True" >> buildozer.spec
-        echo "android.ndk = 25b" >> buildozer.spec
         echo "android.api = 33" >> buildozer.spec
         echo "android.minapi = 24" >> buildozer.spec
-
-    - name: Force Download Correct NDK r25b
-      run: |
-        mkdir -p /home/runner/.buildozer/android/platform
-        cd /home/runner/.buildozer/android/platform
-        wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        unzip -q android-ndk-r25b-linux.zip
-        mv android-ndk-r25b android-ndk-r28c || true
 
     - name: Build with Buildozer
       run: |
