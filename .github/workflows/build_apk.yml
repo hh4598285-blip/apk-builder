@@ -6,34 +6,67 @@ on:
 
 jobs:
   build:
+  
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install Dependencies & Buildozer
-        run: |
-          sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libcilkrts5 libffi-dev libssl-dev
-          pip install --upgrade buildozer cython kivy
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+            python3-pip \
+            build-essential \
+            git \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            libgstreamer1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good
 
-      - name: Create Main Python File
-        run: |
-          echo "${{ github.event.client_payload.code }}" > main.py
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install --upgrade cython==0.29.36
+        pip install --upgrade buildozer
 
-      - name: Initialize & Build APK
-        run: |
-          buildozer init
-          sed -i 's/title = My Application/title = ${{ github.event.client_payload.app_name }}/g' buildozer.spec
-          buildozer -v android debug
+    - name: Prepare App Code
+      run: |
+        mkdir -p my_app
+        echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ github.event.client_payload.app_name }}-APK
-          path: bin/*.apk
+    - name: Init Buildozer Spec
+      run: |
+        cd my_app
+        buildozer init -y
+        # עדכון דרישות הבסיס לקובץ ה-spec
+        sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
+        sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
+        sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
+
+    - name: Build with Buildozer
+      run: |
+        cd my_app
+        buildozer -v android debug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release-apk
+        path: my_app/bin/*.apk
