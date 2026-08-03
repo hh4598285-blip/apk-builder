@@ -6,7 +6,6 @@ on:
 
 jobs:
   build:
-  
     runs-on: ubuntu-latest
 
     steps:
@@ -51,14 +50,18 @@ jobs:
         mkdir -p my_app
         echo "${{ github.event.client_payload.code }}" > my_app/main.py
 
-    - name: Init Buildozer Spec
+    - name: Init Buildozer Spec & Fix Accept Licenses
       run: |
         cd my_app
         buildozer init -y
-        # עדכון דרישות הבסיס לקובץ ה-spec
+        
+        # תיקון ההגדרות בקובץ ה-spec כדי לאשר רישיונות אוטומטית ולהגדיר API תקין
         sed -i 's/#requirements = python3,kivy/requirements = python3,kivy/' buildozer.spec
         sed -i 's/#android.api = 33/android.api = 33/' buildozer.spec
         sed -i 's/#android.minapi = 21/android.minapi = 21/' buildozer.spec
+        
+        # הוספת אישור רישיונות אוטומטי למניעת עצירת הקימפול
+        echo "android.accept_sdk_license = True" >> buildozer.spec
 
     - name: Build with Buildozer
       run: |
